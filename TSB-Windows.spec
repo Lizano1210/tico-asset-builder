@@ -22,7 +22,7 @@ exe = EXE(
     a.binaries,
     a.datas,
     [],
-    name='TSB-Windows',
+    name='TICO-Asset-Builder-Windows',
     debug=False,
     bootloader_ignore_signals=False,
     strip=False,

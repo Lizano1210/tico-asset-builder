@@ -1,6 +1,26 @@
-build/TSB-Windows/TSB-Windows.pkg
-/dist
-/build
+# OS/editor noise
+.DS_Store
+**/.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Python caches and local environments
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+.venv-dev/
+venv/
+env/
+
+# Build output (historical tracked artifacts are intentionally untouched)
+/build/
+/dist/
+*.log
+
+# Obsolete local spec variant
 TSB-Linux-NoFFmpeg.spec
-/dist
-/dist

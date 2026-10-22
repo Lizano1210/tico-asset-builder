@@ -360,3 +360,6 @@ LANGUAGES = {
     
     }
 }
+
+# Load Asset Builder 2.0 strings after the legacy dictionary is initialized.
+import asset_language_strings  # noqa: E402,F401

@@ -24,13 +24,14 @@ import tkinter as tk
 from audio_preview import AudioPreview
 from project_manager import ProjectManager
 from drag_drop import DragDropManager
+from console_pack_ui import ConsolePackTab
 
 from utils import (
     resource_path,
     assign_file
 )
 
-APP_VERSION = "1.2.0"
+APP_VERSION = "2.0.0"
 
 class SoundpackBuilderApp(ctk.CTk):
 
@@ -41,12 +42,12 @@ class SoundpackBuilderApp(ctk.CTk):
         # CONFIGURACIÓN VENTANA
         # ==================================================
 
-        self.title("TICO Soundpack Builder")
+        self.title("TICO Asset Builder")
         if sys.platform == "win32":
             self.iconbitmap(resource_path("assets/tsb.ico"))
         else:
             self.iconphoto(True, ImageTk.PhotoImage(Image.open(resource_path("assets/tico_logo.png"))))
-        self.minsize(900, 700)
+        self.minsize(1000, 760)
         self.resizable(True, True)
         from tkinterdnd2 import TkinterDnD
 
@@ -87,10 +88,6 @@ class SoundpackBuilderApp(ctk.CTk):
 
         self.audio_preview.cleanup()
         self._cleanup_portable_tmp()
-        self.destroy()
-
-        self.audio_preview.cleanup()
-
         self.destroy()
 
     # ==================================================
@@ -247,6 +244,16 @@ class SoundpackBuilderApp(ctk.CTk):
         self.help_button.configure(
             text=lang["help_menu"]
         )
+
+        old_sound_title = self.sound_tab_title
+        old_console_title = self.console_tab_title
+        self.sound_tab_title = lang["soundpacks_tab"]
+        self.console_tab_title = lang["console_packs_tab"]
+        if old_sound_title != self.sound_tab_title:
+            self.tabview.rename(old_sound_title, self.sound_tab_title)
+        if old_console_title != self.console_tab_title:
+            self.tabview.rename(old_console_title, self.console_tab_title)
+        self.console_pack_editor.refresh_language()
 
     def handle_drop(
         self,
@@ -520,9 +527,21 @@ class SoundpackBuilderApp(ctk.CTk):
 
         self.create_top_bar()
         self.create_header()
+        lang = LANGUAGES[self.current_language]
+        self.sound_tab_title = lang["soundpacks_tab"]
+        self.console_tab_title = lang["console_packs_tab"]
+        self.tabview = ctk.CTkTabview(self)
+        self.tabview.pack(fill="both", expand=True, padx=20, pady=(0, 10))
+        self.sound_tab = self.tabview.add(self.sound_tab_title)
+        self.console_tab = self.tabview.add(self.console_tab_title)
         self.create_pack_name()
         self.create_sound_rows()
         self.create_footer()
+        self.console_pack_editor = ConsolePackTab(
+            self.console_tab,
+            lambda: LANGUAGES[self.current_language]
+        )
+        self.console_pack_editor.pack(fill="both", expand=True)
 
     def create_top_bar(self):
 
@@ -605,29 +624,29 @@ class SoundpackBuilderApp(ctk.CTk):
         )
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["new_project"],
+            label=LANGUAGES[self.current_language]["sound_new_project"],
             command=self.new_project
         )
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["open_project"],
+            label=LANGUAGES[self.current_language]["sound_open_project"],
             command=self.open_project
         )
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["save_project"],
+            label=LANGUAGES[self.current_language]["sound_save_project"],
             command=self.save_project
         )
 
         menu.add_separator()
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["export_portable"],
+            label=LANGUAGES[self.current_language]["sound_export_portable"],
             command=self.export_portable_project
         )
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["import_portable"],
+            label=LANGUAGES[self.current_language]["sound_import_portable"],
             command=self.import_portable_project
         )
 
@@ -659,6 +678,11 @@ class SoundpackBuilderApp(ctk.CTk):
         menu.add_command(
             label=LANGUAGES[self.current_language]["install_guide"],
             command=self.show_install_guide
+        )
+
+        menu.add_command(
+            label=LANGUAGES[self.current_language]["console_install_guide"],
+            command=self.show_console_install_guide
         )
 
         menu.add_separator()
@@ -699,10 +723,6 @@ class SoundpackBuilderApp(ctk.CTk):
             pady=10
         )
 
-        self.logo_label.pack(
-            anchor="w"
-        )
-
         self.title_label = ctk.CTkLabel(
             left_frame,
             text=LANGUAGES[self.current_language]["title"],
@@ -720,7 +740,7 @@ class SoundpackBuilderApp(ctk.CTk):
 
     def create_pack_name(self):
 
-        frame = ctk.CTkFrame(self)
+        frame = ctk.CTkFrame(self.sound_tab)
 
         frame.pack(
             fill="x",
@@ -755,7 +775,7 @@ class SoundpackBuilderApp(ctk.CTk):
 
     def create_sound_rows(self):
 
-        self.sounds_frame = ctk.CTkScrollableFrame(self)
+        self.sounds_frame = ctk.CTkScrollableFrame(self.sound_tab)
 
         self.sounds_frame.pack(
             fill="both",
@@ -1250,7 +1270,7 @@ class SoundpackBuilderApp(ctk.CTk):
 
     def create_footer(self):
 
-        self.footer_frame = ctk.CTkFrame(self)
+        self.footer_frame = ctk.CTkFrame(self.sound_tab)
 
         self.footer_frame.pack(
             fill="x",
@@ -1450,6 +1470,14 @@ class SoundpackBuilderApp(ctk.CTk):
             anchor="se",
             padx=10,
             pady=10
+        )
+
+    def show_console_install_guide(self):
+        lang = LANGUAGES[self.current_language]
+        messagebox.showinfo(
+            lang["console_install_guide_title"],
+            lang["console_install_guide_text"],
+            parent=self
         )
 
     def show_about(self):

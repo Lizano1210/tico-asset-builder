@@ -1,5 +1,5 @@
-from gui import SoundpackBuilderApp
+from gui import SoundpackBuilderApp as AssetBuilderApp
 
 if __name__ == "__main__":
-    app = SoundpackBuilderApp()
+    app = AssetBuilderApp()
     app.mainloop()
