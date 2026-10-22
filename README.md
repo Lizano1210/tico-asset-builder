@@ -1,4 +1,5 @@
-# TICO Asset Builder
+# TICO Asset Builder <img width="64" height="64" alt="tsb" src="https://github.com/user-attachments/assets/3415c258-f8c7-42e6-bca9-dd03d5080265" /> 
+
 
 A simple desktop tool for creating custom asset packs for [TICO](https://ticoverse.com/). Add your favorite sounds or artwork, choose your colors, and export a ready-to-use pack—no manual conversion or folder setup required.
 
@@ -123,3 +124,6 @@ Soundpack conversion and audio preview require FFmpeg, ffplay, and ffprobe when 
 
 - [Using Soundpacks](https://ticoverse.com/wiki/assets/using-soundpacks)
 - [Using Console Packs](https://ticoverse.com/wiki/theming/using-console-packs)
+
+  <img width="640" height="312" alt="tico_logo" src="https://github.com/user-attachments/assets/a9a21566-24fb-4fac-9450-ddb431a88b94" />
+
