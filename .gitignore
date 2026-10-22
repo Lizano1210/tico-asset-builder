@@ -25,3 +25,4 @@ env/
 # Obsolete local spec variant
 TSB-Linux-NoFFmpeg.spec
 /dist
+dist/TSB.exe
