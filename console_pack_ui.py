@@ -12,6 +12,7 @@ from console_pack import (
     COLOR_KEYS,
     CONSOLE_SLUGS,
     ConsolePackExporter,
+    apply_palette_to_all,
 )
 from console_project import (
     LOCAL_EXTENSION,
@@ -246,6 +247,10 @@ class ConsolePackTab(ctk.CTkFrame):
         self.colors_heading.pack(fill="x", padx=8, pady=(14, 3))
         self.color_hint = ctk.CTkLabel(body, anchor="w", text_color=("#555555", "#BBBBBB"))
         self.color_hint.pack(fill="x", padx=8, pady=(0, 5))
+        self.apply_colors_button = ctk.CTkButton(
+            body, width=190, command=self._apply_colors_to_all
+        )
+        self.apply_colors_button.pack(anchor="w", padx=8, pady=(0, 7))
         for color_key in COLOR_KEYS:
             row = ctk.CTkFrame(body)
             row.pack(fill="x", padx=5, pady=3)
@@ -282,6 +287,7 @@ class ConsolePackTab(ctk.CTkFrame):
         self.assets_heading.configure(text=lang["console_assets"])
         self.colors_heading.configure(text=lang["console_colors"])
         self.color_hint.configure(text=lang["console_color_hint"])
+        self.apply_colors_button.configure(text=lang["apply_colors_to_all"])
         self.export_button.configure(text=lang["create_console_pack"])
         self.zip_note.configure(text=lang["console_zip_note"])
         for kind in ASSET_TYPES:
@@ -393,6 +399,25 @@ class ConsolePackTab(ctk.CTkFrame):
         self.state[self.current_slug]["colors"].pop(key, None)
         self._update_swatch(key)
         self._refresh_summary()
+
+    def _apply_colors_to_all(self):
+        self._save_visible_colors()
+        try:
+            apply_palette_to_all(
+                self.state,
+                self.state[self.current_slug]["colors"],
+            )
+        except Exception as error:
+            messagebox.showerror(
+                self.lang["validation_error"], str(error), parent=self
+            )
+            return
+        self._load_console(self.current_slug)
+        messagebox.showinfo(
+            self.lang["success"],
+            self.lang["apply_colors_success"].format(count=len(CONSOLE_SLUGS)),
+            parent=self,
+        )
 
     def _update_swatch(self, key):
         value = self.color_entries[key].get().strip()

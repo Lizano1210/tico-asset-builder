@@ -10,6 +10,7 @@ from console_pack import (
     CONSOLE_SLUGS,
     ConsolePackError,
     ConsolePackExporter,
+    apply_palette_to_all,
     normalize_console_state,
     validate_hex_color,
     validate_pack_name,
@@ -69,6 +70,47 @@ def test_normalize_state_drops_empty_values_and_rejects_unknown_fields():
     }
     with pytest.raises(ConsolePackError):
         normalize_console_state({"gba": {"assets": {"poster": "x.png"}}})
+
+
+def test_apply_palette_to_all_preserves_assets_and_replaces_every_color_set():
+    state = {
+        slug: {"assets": {}, "colors": {"color_end": "111111"}}
+        for slug in CONSOLE_SLUGS
+    }
+    state["gba"]["assets"]["cover"] = "/tmp/gba.png"
+    state["nes"]["assets"]["symbol"] = "/tmp/nes.svg"
+
+    result = apply_palette_to_all(
+        state,
+        {"color_start": "aabbcc", "color_end_dark": "123456"},
+    )
+
+    assert result is state
+    assert all(
+        entry["colors"] == {
+            "color_start": "AABBCC",
+            "color_end_dark": "123456",
+        }
+        for entry in state.values()
+    )
+    assert state["gba"]["assets"] == {"cover": "/tmp/gba.png"}
+    assert state["nes"]["assets"] == {"symbol": "/tmp/nes.svg"}
+
+
+def test_apply_palette_to_all_rejects_empty_or_invalid_palette_without_changes():
+    state = {
+        slug: {"assets": {}, "colors": {"color_start": "ABCDEF"}}
+        for slug in CONSOLE_SLUGS
+    }
+    original = json.loads(json.dumps(state))
+
+    with pytest.raises(ConsolePackError, match="at least one"):
+        apply_palette_to_all(state, {})
+    assert state == original
+
+    with pytest.raises(ConsolePackError, match="6 RGB hex digits"):
+        apply_palette_to_all(state, {"color_start": "bad"})
+    assert state == original
 
 
 def test_svg_validation_requires_real_parseable_svg(tmp_path):

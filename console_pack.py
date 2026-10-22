@@ -64,6 +64,49 @@ def validate_hex_color(value):
     return normalized.upper()
 
 
+def apply_palette_to_all(console_state, palette):
+    """Apply one validated color palette to every supported console in-place."""
+    if not isinstance(console_state, dict):
+        raise ConsolePackError("Console state must be a mapping.")
+    if not isinstance(palette, dict):
+        raise ConsolePackError("Color palette must be a mapping.")
+    unknown_colors = set(palette) - set(COLOR_KEYS)
+    if unknown_colors:
+        raise ConsolePackError(
+            "Unknown color fields: {0}".format(", ".join(sorted(unknown_colors)))
+        )
+
+    normalized_palette = {}
+    for key in COLOR_KEYS:
+        color = validate_hex_color(palette.get(key))
+        if color:
+            normalized_palette[key] = color
+    if not normalized_palette:
+        raise ConsolePackError("Choose at least one color before applying the palette.")
+
+    unknown_slugs = set(console_state) - set(CONSOLE_SLUGS)
+    if unknown_slugs:
+        raise ConsolePackError("Unsupported console slug: {0}".format(sorted(unknown_slugs)[0]))
+    validated_assets = {}
+    for slug in CONSOLE_SLUGS:
+        entry = console_state.get(slug)
+        if entry is None:
+            validated_assets[slug] = {}
+            continue
+        if not isinstance(entry, dict):
+            raise ConsolePackError("Configuration for {0} must be a mapping.".format(slug))
+        assets = entry.get("assets") or {}
+        if not isinstance(assets, dict):
+            raise ConsolePackError("Assets for {0} must be a mapping.".format(slug))
+        validated_assets[slug] = assets
+
+    for slug in CONSOLE_SLUGS:
+        entry = console_state.setdefault(slug, {"assets": {}, "colors": {}})
+        entry["assets"] = validated_assets[slug]
+        entry["colors"] = dict(normalized_palette)
+    return console_state
+
+
 def validate_svg(path):
     source = Path(path)
     if not source.is_file():

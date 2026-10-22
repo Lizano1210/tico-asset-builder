@@ -1,37 +1,114 @@
 # TICO Asset Builder
 
-TICO Asset Builder 2.0 creates both classic TICO soundpacks and TICO console packs from a desktop UI. The existing `.tsbp` and portable `.tsbz` soundpack formats remain supported and are intentionally separate from console-pack state.
+A simple desktop tool for creating custom asset packs for [TICO](https://ticoverse.com/). Add your favorite sounds or artwork, choose your colors, and export a ready-to-use pack—no manual conversion or folder setup required.
 
-## Features
+TICO Asset Builder can create two kinds of packs:
 
-- **Soundpacks tab:** the original sound assignment, preview, project, portable-project, FFmpeg conversion, and ZIP workflow.
-- **Console Packs tab:** configure any supported console independently with optional covers, backgrounds, logos, symbols, and gradient colors.
-- English, Spanish, and Portuguese UI strings.
+- **Soundpacks** change TICO's interface sounds and background music.
+- **Console Packs** change console covers, backgrounds, logos, symbols, and card colors.
 
-The console-pack contract follows the [official TICO console-pack guide](https://ticoverse.com/wiki/theming/using-console-packs).
+The app is available in English, Spanish, and Portuguese.
 
-## Console-pack output
+## Download
 
-Choose a destination folder and the application creates:
+Download the latest build from the [Releases page](https://github.com/Lizano1210/tico-asset-builder/releases).
+
+The Windows build is portable: download the `.exe` and run it directly. No installation is required.
+
+## Creating a Soundpack
+
+1. Open the **Soundpacks** tab.
+2. Enter a name for your soundpack.
+3. Select or drag and drop an audio file into each sound slot.
+4. Use the preview controls to check your sounds.
+5. Use **Manage Songs** to add extra background-music tracks when needed.
+6. Click **Create Soundpack** and choose where to save it.
+
+The builder automatically converts supported audio files to the formats TICO expects. FFmpeg is included with the bundled release.
+
+To install the finished pack, copy its generated folder into:
 
 ```text
-<destination>/
-├── <pack-name>/
-│   ├── covers/<console>.jpg          (optional)
-│   ├── backgrounds/<console>.jpg     (optional)
-│   ├── logos/<console>.png           (optional)
-│   ├── symbols/<console>.svg         (optional)
-│   └── colors.json                   (optional)
-└── <pack-name>.zip
+sdmc:/tico/theme/soundpacks/
 ```
 
-Partial packs are valid. Raster images retain their dimensions and have EXIF orientation applied. PNG logos preserve transparency. Because JPEG has no alpha channel, transparent cover/background pixels are composited onto **white**. Symbols must be parseable SVG files and are copied without raster-to-vector conversion.
+Then open TICO and go to:
 
-The sharing ZIP includes `<pack-name>/...`. Extract it anywhere, then place that folder under `sdmc:/tico/theme/consolepacks/` yourself. It is not a TICO Store package.
+```text
+Settings → Audio → Soundpacks
+```
+
+Choose your new soundpack from the list.
+
+## Creating a Console Pack
+
+1. Open the **Console Packs** tab.
+2. Enter a name for your console pack.
+3. Select a console and add any artwork you want to replace:
+   - Cover
+   - Background
+   - Logo
+   - Symbol
+4. Optionally choose light- and dark-mode gradient colors.
+5. Repeat for any other consoles you want to customize. Use **Apply colors to all consoles** when the whole pack should share one palette.
+6. Click **Create Console Pack** and choose where to save it.
+
+Console Packs can be partial. You only need to configure the consoles and assets you want to change; TICO uses its defaults for everything else.
+
+To install the finished pack, copy its generated folder into:
+
+```text
+sdmc:/tico/theme/consolepacks/
+```
+
+Then open TICO and go to:
+
+```text
+Settings → Interface → Card settings → Console Pack
+```
+
+Choose your new console pack from the list.
+
+## Projects
+
+Projects let you continue editing a pack later or share the editable project with someone else.
+
+| Pack type | Local project | Portable project |
+| --- | --- | --- |
+| Soundpack | `.tsbp` | `.tsbz` |
+| Console Pack | `.tcp` | `.tcpz` |
+
+Local projects reference files on your computer. Portable projects include the source files so the project can be moved to another computer.
+
+The **File** menu automatically shows the correct project options for the active tab.
+
+## Pack names
+
+Keep pack names simple. Use letters, numbers, underscores, or hyphens so TICO can display and load them reliably.
+
+Examples:
+
+```text
+retro_clicks
+minimal-pack
+my_console_pack
+```
+
+## Windows SmartScreen warning
+
+Windows may show a Microsoft Defender SmartScreen warning the first time you run the downloaded `.exe`. This happens because the community-built executable is not digitally signed.
+
+If you downloaded it from this repository's official Releases page:
+
+1. Click **More info**.
+2. Confirm that the app is **TICO Asset Builder**.
+3. Click **Run anyway**.
+
+You do not need to disable SmartScreen or Windows Defender. The project is open source, so the complete source code can be reviewed here before running the application.
 
 ## Run from source
 
-Python 3.9 or newer is recommended. FFmpeg/ffplay/ffprobe must be installed or bundled for soundpack conversion and preview; console-pack image export uses Pillow and does not need FFmpeg.
+Python 3.9 or newer is recommended.
 
 ```bash
 python3 -m venv .venv-dev
@@ -40,17 +117,9 @@ python -m pip install -r requirements.txt
 python main.py
 ```
 
-## Development and tests
+Soundpack conversion and audio preview require FFmpeg, ffplay, and ffprobe when running from source.
 
-```bash
-python -m pip install -r requirements-dev.txt
-pytest -q
-python -m py_compile *.py
-pyinstaller --clean --noconfirm main.spec
-```
+## Official TICO guides
 
-PyInstaller builds are platform-specific. Building on macOS does not produce or replace the Windows executable.
-
-## Install a console pack
-
-Extract the generated ZIP anywhere, then copy its `<pack-name>` directory into `sdmc:/tico/theme/consolepacks/`. You can also copy the generated folder directly. See **Help → How to Install a Console Pack** in the app.
+- [Using Soundpacks](https://ticoverse.com/wiki/assets/using-soundpacks)
+- [Using Console Packs](https://ticoverse.com/wiki/theming/using-console-packs)
