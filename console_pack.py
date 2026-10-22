@@ -228,11 +228,71 @@ class ConsolePackExporter:
         validate_pack_name(pack.name)
         zip_path = pack.parent / (pack.name + ".zip")
         files = sorted(path for path in pack.rglob("*") if path.is_file())
-        with zipfile.ZipFile(str(zip_path), "w", zipfile.ZIP_DEFLATED, compresslevel=9) as archive:
-            for path in files:
-                arcname = (Path(pack.name) / path.relative_to(pack)).as_posix()
-                info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
-                info.compress_type = zipfile.ZIP_DEFLATED
-                info.external_attr = 0o100644 << 16
-                archive.writestr(info, path.read_bytes())
+        descriptor, temporary_name = tempfile.mkstemp(
+            prefix=".{0}-".format(pack.name), suffix=".zip", dir=str(pack.parent)
+        )
+        os.close(descriptor)
+        temporary_zip = Path(temporary_name)
+        try:
+            with zipfile.ZipFile(
+                str(temporary_zip), "w", zipfile.ZIP_DEFLATED, compresslevel=9
+            ) as archive:
+                for path in files:
+                    arcname = (Path(pack.name) / path.relative_to(pack)).as_posix()
+                    info = zipfile.ZipInfo(arcname, date_time=(1980, 1, 1, 0, 0, 0))
+                    info.compress_type = zipfile.ZIP_DEFLATED
+                    info.external_attr = 0o100644 << 16
+                    archive.writestr(info, path.read_bytes())
+            os.replace(str(temporary_zip), str(zip_path))
+        finally:
+            if temporary_zip.exists():
+                temporary_zip.unlink()
         return zip_path
+
+    @classmethod
+    def export_bundle(cls, destination_folder, pack_name, console_state):
+        """Export the pack folder and ZIP as one rollback-safe delivery."""
+        name = validate_pack_name(pack_name)
+        destination = Path(destination_folder).expanduser()
+        destination.mkdir(parents=True, exist_ok=True)
+        target_pack = destination / name
+        target_zip = destination / (name + ".zip")
+
+        with tempfile.TemporaryDirectory(
+            prefix=".{0}-bundle-".format(name), dir=str(destination)
+        ) as temporary_root:
+            temporary_root = Path(temporary_root)
+            staged_pack = cls.export(temporary_root, name, console_state)
+            staged_zip = cls.create_zip(staged_pack)
+
+            backup_root = Path(tempfile.mkdtemp(
+                prefix=".{0}-backup-".format(name), dir=str(destination)
+            ))
+            backup_pack = backup_root / name
+            backup_zip = backup_root / (name + ".zip")
+            pack_installed = False
+            zip_installed = False
+            try:
+                if target_pack.exists():
+                    os.replace(str(target_pack), str(backup_pack))
+                if target_zip.exists():
+                    os.replace(str(target_zip), str(backup_zip))
+
+                os.replace(str(staged_pack), str(target_pack))
+                pack_installed = True
+                os.replace(str(staged_zip), str(target_zip))
+                zip_installed = True
+            except Exception:
+                if zip_installed and target_zip.exists():
+                    target_zip.unlink()
+                if pack_installed and target_pack.exists():
+                    shutil.rmtree(str(target_pack), ignore_errors=True)
+                if backup_pack.exists():
+                    os.replace(str(backup_pack), str(target_pack))
+                if backup_zip.exists():
+                    os.replace(str(backup_zip), str(target_zip))
+                raise
+            finally:
+                shutil.rmtree(str(backup_root), ignore_errors=True)
+
+        return target_pack, target_zip

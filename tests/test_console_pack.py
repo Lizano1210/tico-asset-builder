@@ -185,3 +185,47 @@ def test_zip_has_extraction_ready_consolepacks_layout_and_is_reproducible(tmp_pa
     assert zip_path.read_bytes() == first_bytes
     with zipfile.ZipFile(zip_path) as archive:
         assert archive.namelist() == ["zip-pack/backgrounds/snes.jpg"]
+
+
+def test_zip_failure_preserves_existing_archive(tmp_path, monkeypatch):
+    background = make_image(tmp_path / "background.png")
+    pack = ConsolePackExporter.export(
+        tmp_path / "out", "safe-zip", {"snes": {"assets": {"background": background}}}
+    )
+    zip_path = ConsolePackExporter.create_zip(pack)
+    previous = zip_path.read_bytes()
+
+    def fail_write(*_args, **_kwargs):
+        raise OSError("injected ZIP failure")
+
+    monkeypatch.setattr(zipfile.ZipFile, "writestr", fail_write)
+    with pytest.raises(OSError, match="injected ZIP failure"):
+        ConsolePackExporter.create_zip(pack)
+    assert zip_path.read_bytes() == previous
+
+
+def test_bundle_failure_preserves_previous_folder_and_zip(tmp_path, monkeypatch):
+    first_image = make_image(tmp_path / "first.png", color=(10, 20, 30))
+    second_image = make_image(tmp_path / "second.png", color=(200, 210, 220))
+    destination = tmp_path / "out"
+    pack, archive = ConsolePackExporter.export_bundle(
+        destination,
+        "safe-bundle",
+        {"nes": {"assets": {"cover": first_image}}},
+    )
+    previous_cover = (pack / "covers/nes.jpg").read_bytes()
+    previous_archive = archive.read_bytes()
+
+    def fail_write(*_args, **_kwargs):
+        raise OSError("injected bundle ZIP failure")
+
+    monkeypatch.setattr(zipfile.ZipFile, "writestr", fail_write)
+    with pytest.raises(OSError, match="injected bundle ZIP failure"):
+        ConsolePackExporter.export_bundle(
+            destination,
+            "safe-bundle",
+            {"nes": {"assets": {"cover": second_image}}},
+        )
+
+    assert (pack / "covers/nes.jpg").read_bytes() == previous_cover
+    assert archive.read_bytes() == previous_archive

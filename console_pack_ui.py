@@ -1,5 +1,6 @@
 """CustomTkinter UI for building console packs."""
 
+import shutil
 from pathlib import Path
 from tkinter import colorchooser, filedialog, messagebox
 
@@ -11,6 +12,11 @@ from console_pack import (
     COLOR_KEYS,
     CONSOLE_SLUGS,
     ConsolePackExporter,
+)
+from console_project import (
+    LOCAL_EXTENSION,
+    PORTABLE_EXTENSION,
+    ConsoleProjectManager,
 )
 
 
@@ -38,6 +44,8 @@ class ConsolePackTab(ctk.CTkFrame):
             for slug in CONSOLE_SLUGS
         }
         self.current_slug = CONSOLE_SLUGS[0]
+        self.is_portable_project = False
+        self._portable_tmp_dir = None
         self.preview_images = {}
         self.asset_name_labels = {}
         self.asset_select_buttons = {}
@@ -51,6 +59,134 @@ class ConsolePackTab(ctk.CTkFrame):
         self._build()
         self.refresh_language()
         self._load_console(self.current_slug)
+
+    def cleanup(self):
+        if self._portable_tmp_dir:
+            shutil.rmtree(self._portable_tmp_dir, ignore_errors=True)
+            self._portable_tmp_dir = None
+
+    def _empty_state(self):
+        return {slug: {"assets": {}, "colors": {}} for slug in CONSOLE_SLUGS}
+
+    def _replace_project(self, pack_name, console_state):
+        self.state = self._empty_state()
+        for slug, entry in console_state.items():
+            self.state[slug] = {
+                "assets": dict(entry.get("assets", {})),
+                "colors": dict(entry.get("colors", {})),
+            }
+        self.pack_name_entry.delete(0, "end")
+        self.pack_name_entry.insert(0, pack_name)
+        self.current_slug = CONSOLE_SLUGS[0]
+        self.console_menu.set(self.current_slug)
+        self._load_console(self.current_slug)
+
+    def new_project(self):
+        lang = self.lang
+        answer = messagebox.askyesnocancel(
+            lang["console_new_project"],
+            lang["console_new_project_confirm"],
+            parent=self,
+        )
+        if answer is None:
+            return
+        if answer and not self.save_project():
+            return
+        self.cleanup()
+        self.is_portable_project = False
+        self._replace_project("", {})
+
+    def open_project(self):
+        filepath = filedialog.askopenfilename(
+            filetypes=[(self.lang["console_local_project_type"], "*" + LOCAL_EXTENSION)]
+        )
+        if not filepath:
+            return
+        try:
+            project = ConsoleProjectManager.load_local(filepath)
+        except Exception as error:
+            messagebox.showerror(self.lang["error"], str(error), parent=self)
+            return
+        self.cleanup()
+        self.is_portable_project = False
+        self._replace_project(project["pack_name"], project["consoles"])
+        missing = ConsoleProjectManager.missing_assets(project["consoles"])
+        if missing:
+            messagebox.showwarning(
+                self.lang["missing_files"],
+                self.lang["console_missing_assets"].format(assets="\n".join(missing)),
+                parent=self,
+            )
+
+    def save_project(self):
+        self._save_visible_colors()
+        pack_name = self.pack_name_entry.get().strip()
+        if not pack_name:
+            messagebox.showerror(self.lang["error"], self.lang["project_name"], parent=self)
+            return False
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=LOCAL_EXTENSION,
+            filetypes=[(self.lang["console_local_project_type"], "*" + LOCAL_EXTENSION)],
+            initialfile=pack_name,
+        )
+        if not filepath:
+            return False
+        try:
+            if self.is_portable_project:
+                _path, local_state = ConsoleProjectManager.save_imported_as_local(
+                    filepath, pack_name, self.state
+                )
+                self.cleanup()
+                self.is_portable_project = False
+                self._replace_project(pack_name, local_state)
+            else:
+                ConsoleProjectManager.save_local(filepath, pack_name, self.state)
+        except Exception as error:
+            messagebox.showerror(self.lang["error"], str(error), parent=self)
+            return False
+        messagebox.showinfo(self.lang["success"], self.lang["project_saved"], parent=self)
+        return True
+
+    def export_portable_project(self):
+        self._save_visible_colors()
+        pack_name = self.pack_name_entry.get().strip()
+        if not pack_name:
+            messagebox.showerror(self.lang["error"], self.lang["project_name"], parent=self)
+            return
+        filepath = filedialog.asksaveasfilename(
+            defaultextension=PORTABLE_EXTENSION,
+            filetypes=[(self.lang["console_portable_project_type"], "*" + PORTABLE_EXTENSION)],
+            initialfile=pack_name,
+        )
+        if not filepath:
+            return
+        try:
+            ConsoleProjectManager.export_portable(filepath, pack_name, self.state)
+        except Exception as error:
+            messagebox.showerror(self.lang["error"], str(error), parent=self)
+            return
+        messagebox.showinfo(
+            self.lang["success"], self.lang["console_portable_export_success"], parent=self
+        )
+
+    def import_portable_project(self):
+        filepath = filedialog.askopenfilename(
+            filetypes=[(self.lang["console_portable_project_type"], "*" + PORTABLE_EXTENSION)]
+        )
+        if not filepath:
+            return
+        try:
+            project = ConsoleProjectManager.import_portable(filepath)
+        except Exception as error:
+            messagebox.showerror(self.lang["error"], str(error), parent=self)
+            return
+        self.cleanup()
+        self._portable_tmp_dir = project["tmp_dir"]
+        self.is_portable_project = True
+        self._replace_project(project["pack_name"], project["consoles"])
+        messagebox.showinfo(
+            self.lang["success"], self.lang["console_portable_import_success"], parent=self
+        )
 
     @property
     def lang(self):
@@ -279,10 +415,9 @@ class ConsolePackTab(ctk.CTkFrame):
         if not destination:
             return
         try:
-            pack_path = ConsolePackExporter.export(
+            pack_path, zip_path = ConsolePackExporter.export_bundle(
                 destination, self.pack_name_entry.get(), self.state
             )
-            zip_path = ConsolePackExporter.create_zip(pack_path)
         except Exception as error:
             messagebox.showerror(self.lang["validation_error"], str(error), parent=self)
             return

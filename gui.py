@@ -88,6 +88,7 @@ class SoundpackBuilderApp(ctk.CTk):
 
         self.audio_preview.cleanup()
         self._cleanup_portable_tmp()
+        self.console_pack_editor.cleanup()
         self.destroy()
 
     # ==================================================
@@ -616,6 +617,26 @@ class SoundpackBuilderApp(ctk.CTk):
             pady=5
         )
 
+    def _file_menu_actions(self):
+        lang = LANGUAGES[self.current_language]
+        if self.tabview.get() == self.console_tab_title:
+            return (
+                (lang["console_new_project"], self.console_pack_editor.new_project),
+                (lang["console_open_project"], self.console_pack_editor.open_project),
+                (lang["console_save_project"], self.console_pack_editor.save_project),
+                None,
+                (lang["console_export_portable"], self.console_pack_editor.export_portable_project),
+                (lang["console_import_portable"], self.console_pack_editor.import_portable_project),
+            )
+        return (
+            (lang["sound_new_project"], self.new_project),
+            (lang["sound_open_project"], self.open_project),
+            (lang["sound_save_project"], self.save_project),
+            None,
+            (lang["sound_export_portable"], self.export_portable_project),
+            (lang["sound_import_portable"], self.import_portable_project),
+        )
+
     def show_file_menu(self):
 
         menu = tk.Menu(
@@ -623,37 +644,17 @@ class SoundpackBuilderApp(ctk.CTk):
             tearoff=0
         )
 
-        menu.add_command(
-            label=LANGUAGES[self.current_language]["sound_new_project"],
-            command=self.new_project
-        )
-
-        menu.add_command(
-            label=LANGUAGES[self.current_language]["sound_open_project"],
-            command=self.open_project
-        )
-
-        menu.add_command(
-            label=LANGUAGES[self.current_language]["sound_save_project"],
-            command=self.save_project
-        )
+        lang = LANGUAGES[self.current_language]
+        for action in self._file_menu_actions():
+            if action is None:
+                menu.add_separator()
+            else:
+                menu.add_command(label=action[0], command=action[1])
 
         menu.add_separator()
 
         menu.add_command(
-            label=LANGUAGES[self.current_language]["sound_export_portable"],
-            command=self.export_portable_project
-        )
-
-        menu.add_command(
-            label=LANGUAGES[self.current_language]["sound_import_portable"],
-            command=self.import_portable_project
-        )
-
-        menu.add_separator()
-
-        menu.add_command(
-            label=LANGUAGES[self.current_language]["exit"],
+            label=lang["exit"],
             command=self.on_closing
         )
 
