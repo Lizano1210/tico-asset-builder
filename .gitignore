@@ -26,3 +26,4 @@ env/
 TSB-Linux-NoFFmpeg.spec
 /dist
 dist/TSB.exe
+/.venv

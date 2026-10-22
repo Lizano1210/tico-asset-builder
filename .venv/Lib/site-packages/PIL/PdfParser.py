@@ -8,15 +8,7 @@ import os
 import re
 import time
 import zlib
-from typing import Any, NamedTuple
-
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from typing import IO
-
-    _DictBase = collections.UserDict[str | bytes, Any]
-else:
-    _DictBase = collections.UserDict
+from typing import IO, Any, NamedTuple, Union
 
 
 # see 7.9.2.2 Text String Type on page 86 and D.3 PDFDocEncoding Character Set
@@ -257,6 +249,13 @@ class PdfName:
 class PdfArray(list[Any]):
     def __bytes__(self) -> bytes:
         return b"[ " + b" ".join(pdf_repr(x) for x in self) + b" ]"
+
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    _DictBase = collections.UserDict[Union[str, bytes], Any]
+else:
+    _DictBase = collections.UserDict
 
 
 class PdfDict(_DictBase):
@@ -685,9 +684,7 @@ class PdfParser:
         if b"Prev" in self.trailer_dict:
             self.read_prev_trailer(self.trailer_dict[b"Prev"])
 
-    def read_prev_trailer(
-        self, xref_section_offset: int, processed_offsets: list[int] = []
-    ) -> None:
+    def read_prev_trailer(self, xref_section_offset: int) -> None:
         assert self.buf is not None
         trailer_offset = self.read_xref_table(xref_section_offset=xref_section_offset)
         m = self.re_trailer_prev.search(
@@ -702,11 +699,7 @@ class PdfParser:
         )
         trailer_dict = self.interpret_trailer(trailer_data)
         if b"Prev" in trailer_dict:
-            processed_offsets.append(xref_section_offset)
-            check_format_condition(
-                trailer_dict[b"Prev"] not in processed_offsets, "trailer loop found"
-            )
-            self.read_prev_trailer(trailer_dict[b"Prev"], processed_offsets)
+            self.read_prev_trailer(trailer_dict[b"Prev"])
 
     re_whitespace_optional = re.compile(whitespace_optional)
     re_name = re.compile(

@@ -13,7 +13,6 @@
 
 
 """Binary input/output support routines."""
-
 from __future__ import annotations
 
 from struct import pack, unpack_from

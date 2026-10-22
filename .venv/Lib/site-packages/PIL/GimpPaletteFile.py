@@ -17,10 +17,7 @@ from __future__ import annotations
 
 import re
 from io import BytesIO
-
-TYPE_CHECKING = False
-if TYPE_CHECKING:
-    from typing import IO
+from typing import IO
 
 
 class GimpPaletteFile:

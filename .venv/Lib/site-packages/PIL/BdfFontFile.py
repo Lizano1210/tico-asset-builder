@@ -20,7 +20,6 @@
 """
 Parse X Bitmap Distribution Format (BDF)
 """
-
 from __future__ import annotations
 
 from typing import BinaryIO

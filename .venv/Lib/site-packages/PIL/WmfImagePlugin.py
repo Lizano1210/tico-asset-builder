@@ -45,10 +45,10 @@ if hasattr(Image.core, "drawwmf"):
 
     class WmfHandler(ImageFile.StubHandler):
         def open(self, im: ImageFile.StubImageFile) -> None:
+            im._mode = "RGB"
             self.bbox = im.info["wmf_bbox"]
 
         def load(self, im: ImageFile.StubImageFile) -> Image.Image:
-            assert im.fp is not None
             im.fp.seek(0)  # rewind
             return Image.frombytes(
                 "RGB",
@@ -80,8 +80,7 @@ class WmfStubImageFile(ImageFile.StubImageFile):
     format_description = "Windows Metafile"
 
     def _open(self) -> None:
-        # check placeable header
-        assert self.fp is not None
+        # check placable header
         s = self.fp.read(44)
 
         if s.startswith(b"\xd7\xcd\xc6\x9a\x00\x00"):
@@ -146,6 +145,10 @@ class WmfStubImageFile(ImageFile.StubImageFile):
 
         self._mode = "RGB"
         self._size = size
+
+        loader = self._load()
+        if loader:
+            loader.open(self)
 
     def _load(self) -> ImageFile.StubHandler | None:
         return _handler

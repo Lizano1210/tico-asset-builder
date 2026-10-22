@@ -31,7 +31,7 @@ import os
 import subprocess
 from enum import IntEnum
 from functools import cached_property
-from typing import Any, NamedTuple, cast
+from typing import IO, Any, Literal, NamedTuple, Union, cast
 
 from . import (
     Image,
@@ -49,8 +49,6 @@ from ._util import DeferredError
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from typing import IO, Literal
-
     from . import _imaging
     from ._typing import Buffer
 
@@ -87,7 +85,6 @@ class GifImageFile(ImageFile.ImageFile):
     global_palette = None
 
     def data(self) -> bytes | None:
-        assert self.fp is not None
         s = self.fp.read(1)
         if s and s[0]:
             return self.fp.read(s[0])
@@ -101,7 +98,6 @@ class GifImageFile(ImageFile.ImageFile):
 
     def _open(self) -> None:
         # Screen
-        assert self.fp is not None
         s = self.fp.read(13)
         if not _accept(s):
             msg = "not a GIF file"
@@ -118,8 +114,8 @@ class GifImageFile(ImageFile.ImageFile):
             # check if palette contains colour indices
             p = self.fp.read(3 << bits)
             if self._is_palette_needed(p):
-                palette = ImagePalette.raw("RGB", p)
-                self.global_palette = self.palette = palette
+                p = ImagePalette.raw("RGB", p)
+                self.global_palette = self.palette = p
 
         self._fp = self.fp  # FIXME: hack
         self.__rewind = self.fp.tell()
@@ -164,13 +160,13 @@ class GifImageFile(ImageFile.ImageFile):
             self._seek(0)
 
         last_frame = self.__frame
-        try:
-            for f in range(self.__frame + 1, frame + 1):
+        for f in range(self.__frame + 1, frame + 1):
+            try:
                 self._seek(f)
-        except EOFError as e:
-            self.seek(last_frame)
-            msg = "no more images in GIF file"
-            raise EOFError(msg) from e
+            except EOFError as e:
+                self.seek(last_frame)
+                msg = "no more images in GIF file"
+                raise EOFError(msg) from e
 
     def _seek(self, frame: int, update_image: bool = True) -> None:
         if isinstance(self._fp, DeferredError):
@@ -258,7 +254,7 @@ class GifImageFile(ImageFile.ImageFile):
                         info["comment"] += b"\n" + comment
                     else:
                         info["comment"] = comment
-                    s = b""
+                    s = None
                     continue
                 elif s[0] == 255 and frame == 0 and block is not None:
                     #
@@ -301,7 +297,7 @@ class GifImageFile(ImageFile.ImageFile):
                 bits = self.fp.read(1)[0]
                 self.__offset = self.fp.tell()
                 break
-            s = b""
+            s = None
 
         if interlace is None:
             msg = "image not found in GIF frame"
@@ -539,7 +535,7 @@ def _normalize_mode(im: Image.Image) -> Image.Image:
     return im.convert("L")
 
 
-_Palette = bytes | bytearray | list[int] | ImagePalette.ImagePalette
+_Palette = Union[bytes, bytearray, list[int], ImagePalette.ImagePalette]
 
 
 def _normalize_palette(
@@ -753,7 +749,7 @@ def _write_multiple_frames(
                             if delta.mode == "P":
                                 # Convert to L without considering palette
                                 delta_l = Image.new("L", delta.size)
-                                delta_l.putdata(delta.get_flattened_data())
+                                delta_l.putdata(delta.getdata())
                                 delta = delta_l
                             mask = ImageMath.lambda_eval(
                                 lambda args: args["convert"](args["im"] * 255, "1"),
@@ -937,13 +933,7 @@ def _get_optimize(im: Image.Image, info: dict[str, Any]) -> list[int] | None:
     :param info: encoderinfo
     :returns: list of indexes of palette entries in use, or None
     """
-    if (
-        im.mode in ("P", "L")
-        and info
-        and info.get("optimize")
-        and im.width != 0
-        and im.height != 0
-    ):
+    if im.mode in ("P", "L") and info and info.get("optimize"):
         # Potentially expensive operation.
 
         # The palette saves 3 bytes per color not used, but palette

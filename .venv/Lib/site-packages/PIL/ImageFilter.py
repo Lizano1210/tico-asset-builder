@@ -19,14 +19,11 @@ from __future__ import annotations
 import abc
 import functools
 from collections.abc import Sequence
-from typing import cast
+from types import ModuleType
+from typing import Any, Callable, cast
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from types import ModuleType
-    from typing import Any
-
     from . import _imaging
     from ._typing import NumpyArray
 

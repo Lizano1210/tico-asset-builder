@@ -67,7 +67,6 @@ class MicImageFile(TiffImagePlugin.TiffImageFile):
         self._n_frames = len(self.images)
         self.is_animated = self._n_frames > 1
 
-        assert self.fp is not None
         self.__fp = self.fp
         self.seek(0)
 

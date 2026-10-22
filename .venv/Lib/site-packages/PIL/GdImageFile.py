@@ -25,7 +25,6 @@
     implementation is provided for convenience and demonstrational
     purposes only.
 """
-
 from __future__ import annotations
 
 from typing import IO

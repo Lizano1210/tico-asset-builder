@@ -19,18 +19,23 @@ from __future__ import annotations
 
 import sys
 from io import BytesIO
+from typing import Any, Callable, Union
 
 from . import Image
 from ._util import is_path
 
 TYPE_CHECKING = False
 if TYPE_CHECKING:
-    from collections.abc import Callable
-    from typing import Any
+    import PyQt6
+    import PySide6
 
     from . import ImageFile
 
     QBuffer: type
+    QByteArray = Union[PyQt6.QtCore.QByteArray, PySide6.QtCore.QByteArray]
+    QIODevice = Union[PyQt6.QtCore.QIODevice, PySide6.QtCore.QIODevice]
+    QImage = Union[PyQt6.QtGui.QImage, PySide6.QtGui.QImage]
+    QPixmap = Union[PyQt6.QtGui.QPixmap, PySide6.QtGui.QPixmap]
 
 qt_version: str | None
 qt_versions = [
@@ -44,15 +49,11 @@ for version, qt_module in qt_versions:
     try:
         qRgba: Callable[[int, int, int, int], int]
         if qt_module == "PyQt6":
-            from PyQt6.QtCore import QBuffer, QByteArray, QIODevice
+            from PyQt6.QtCore import QBuffer, QIODevice
             from PyQt6.QtGui import QImage, QPixmap, qRgba
         elif qt_module == "PySide6":
-            from PySide6.QtCore import (  # type: ignore[assignment]
-                QBuffer,
-                QByteArray,
-                QIODevice,
-            )
-            from PySide6.QtGui import QImage, QPixmap, qRgba  # type: ignore[assignment]
+            from PySide6.QtCore import QBuffer, QIODevice
+            from PySide6.QtGui import QImage, QPixmap, qRgba
     except (ImportError, RuntimeError):
         continue
     qt_is_installed = True
@@ -182,7 +183,7 @@ def _toqclass_helper(im: Image.Image | str | QByteArray) -> dict[str, Any]:
 
 if qt_is_installed:
 
-    class ImageQt(QImage):
+    class ImageQt(QImage):  # type: ignore[misc]
         def __init__(self, im: Image.Image | str | QByteArray) -> None:
             """
             An PIL image wrapper for Qt.  This is a subclass of PyQt's QImage

@@ -39,7 +39,7 @@ logger = logging.getLogger(__name__)
 
 
 def _accept(prefix: bytes) -> bool:
-    return len(prefix) >= 2 and prefix[0] == 10 and prefix[1] in [0, 2, 3, 5]
+    return prefix[0] == 10 and prefix[1] in [0, 2, 3, 5]
 
 
 ##
@@ -146,10 +146,6 @@ SAVE = {
 
 
 def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
-    if im.width == 0 or im.height == 0:
-        msg = "Cannot write empty image as PCX"
-        raise ValueError(msg)
-
     try:
         version, bits, planes, rawmode = SAVE[im.mode]
     except KeyError as e:
